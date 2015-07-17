@@ -1,5 +1,7 @@
+import hashlib
 import optparse
 import os
+import pkg_resources
 import pkginfo
 import shutil
 import subprocess
@@ -182,37 +184,55 @@ class Indexer:
         index_html = os.path.join(index_dir, 'index.html')
         top = open(index_html, 'w')
         top.writelines(['<html>\n',
+                        '<head>\n',
+                        '<title>Package Index</title>\n',
+                        '<meta name="api-version" value="2" />\n',
+                        '</head>\n',
                         '<body>\n',
-                        '<h1>Package Index</h1>\n',
-                        '<ul>\n'])
+                        '<h1>Package Index</h1>\n',])
 
         for key, value in items:
             self.blather('Project: %s' % key)
+            key = pkg_resources.safe_name(key).lower().encode("utf-8")
             dirname = os.path.join(index_dir, key)
             os.makedirs(dirname)
-            top.write('<li><a href="%s">%s</a></li>\n' % (key, key))
+            top.write('<a href="%s">%s</a><br/>\n' % (key, key))
 
             sub_html = os.path.join(index_dir, key, 'index.html')
             sub = open(sub_html, 'w')
             sub.writelines(['<html>\n',
+                            '<head>\n',
+                            '<title>Links for %s</title>\n' % key,
+                            '<meta name="api-version" value="2" />\n',
+                            '</head>\n',
                             '<body>\n',
-                            '<h1>%s Distributions</h1>\n' % key,
-                            '<ul>\n'])
+                            '<h1>Links for %s</h1>\n' % key,])
 
             for revision, archive in value:
                 self.blather('  -> %s, %s' % (revision, archive))
-                sub.write('<li><a href="../../%s">%s</a></li>\n'
-                                % (archive, archive))
+                digest = self.get_archive_hash(archive, path)
+                sub.write('<a href="../../%s#md5=%s">%s</a><br/>\n'
+                                % (archive, digest, archive))
 
-            sub.writelines(['</ul>\n',
-                            '</body>\n',
+            sub.writelines(['</body>\n',
                             '</html>\n'])
             sub.close()
 
-        top.writelines(['</ul>\n',
-                        '</body>\n',
+        top.writelines(['</body>\n',
                         '</html>\n'])
         top.close()
+
+    def get_archive_hash(self, archive, path=None):
+        if path:
+            archive = os.path.join(path, archive)
+        max_bytes = 1048576
+        with open(archive, 'rb') as a:
+            hasher = hashlib.md5()
+            data = a.read(max_bytes)
+            while data:
+                hasher.update(data)
+                data = a.read(max_bytes)
+        return hasher.hexdigest()
 
     def __call__(self): #pragma NO COVERAGE
         """ Call :meth:`make_index` and clean up.

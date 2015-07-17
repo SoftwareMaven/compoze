@@ -312,11 +312,11 @@ class IndexerTests(unittest.TestCase):
         import tarfile
         from compoze._compat import BytesIO
         tmpdir = self._makeTempdir()
-        filename = os.path.join(tmpdir, 'testpackage-3.14.tar.gz')
+        filename = os.path.join(tmpdir, 'Testpackage-3.14.tar.gz')
         archive = tarfile.TarFile(filename, mode='w')
         buffer = BytesIO()
         buffer.writelines([b'Metadata-Version: 1.0\n',
-                           b'Name: testpackage\n',
+                           b'Name: Testpackage\n',
                            b'Version: 3.14\n',
                           ])
         size = buffer.tell()
@@ -332,15 +332,18 @@ class IndexerTests(unittest.TestCase):
         with open(os.path.join(tmpdir, 'simple', 'index.html')) as f:
             top = f.read()
         self.assertTrue('<h1>Package Index</h1>' in top)
+        self.assertTrue('<meta name="api-version" value="2" />' in top)
         self.assertTrue(
-                '<li><a href="testpackage">testpackage</a></li>' in top)
+                '<a href="testpackage">testpackage</a><br/>' in top)
         with open(os.path.join(tmpdir, 'simple', 'testpackage', 'index.html')
                  ) as f:
             sub = f.read()
-        self.assertTrue('<h1>testpackage Distributions</h1>' in sub)
+        self.assertTrue('<h1>Links for testpackage</h1>' in sub)
+        self.assertTrue('<meta name="api-version" value="2" />' in sub)
         self.assertTrue(
-                '<li><a href="../../testpackage-3.14.tar.gz">'
-                'testpackage-3.14.tar.gz</a></li>' in sub)
+                '<a href="../../Testpackage-3.14.tar.gz#'
+                'md5=b060330e8667de7441b8bdb235a02898">'
+                'Testpackage-3.14.tar.gz</a><br/>' in sub)
 
     def test__extractNameVersion_non_archive(self):
         import tempfile
